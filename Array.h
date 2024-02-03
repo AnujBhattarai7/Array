@@ -8,6 +8,12 @@
         std::cout << x << "\n"; \
     }
 
+template <typename _Tp, size_t _Nm>
+struct __array_traits
+{
+    using _Type = _Tp[_Nm];
+};
+
 template <typename _T, int _Size>
 class Array
 {
@@ -16,23 +22,34 @@ public:
     using Iterator = _Iterator_Base<ValueType>;
 
 public:
+    Array(const std::initializer_list<_T> &_D) { *this = _D; }
     Array() {}
-    ~Array() { _Flush(); }
+    ~Array() {}
 
+    // Getters
     const int Size() const { return _Size; }
     const _T *Data() const { return _Array; }
     const _T &At(int i) const { return this->operator[](i); }
 
+    // Fills up to n the value _O
     void Fill(int n, _T &&_O);
     void Fill(int n, const _T &_O);
 
+    // Erases the object at given index i
     void Erase(int i);
 
+    // Rather than moving creates adds to _V from given args...
+    template <typename... Args>
+    _T &Emplace(int i, Args &&...args);
+    
+    // Operators..
     _T &operator[](int i) { return _Get(i); }
     const _T &operator[](int i) const { return _Get(i); }
 
     Iterator begin() { return Iterator(_Array); }
     Iterator end() { return Iterator(_Array + _Size); }
+
+    inline Array<_T, _Size> &operator=(const std::initializer_list<_T> &_D);
 
 private:
     // The main array whichs stores the data
@@ -83,6 +100,23 @@ inline void Array<_T, _Size>::Erase(int i)
 }
 
 template <typename _T, int _Size>
+inline Array<_T, _Size> &Array<_T, _Size>::operator=(const std::initializer_list<_T> &_D)
+{
+    if (_D.size() > _Size)
+    {
+        _PRINT_("Size: " << _D.size() << " out of range!!!")
+        exit(EXIT_FAILURE);
+    }
+
+    int _i = -1;
+
+    for (auto &i : _D)
+        _Array[_i] = std::move(i);
+
+    return *this;
+}
+
+template <typename _T, int _Size>
 inline void Array<_T, _Size>::_Flush()
 {
     for (int i = 0; i < _Size; i++)
@@ -103,5 +137,15 @@ template <typename _T, int _Size>
 inline _T &Array<_T, _Size>::_Get(int i)
 {
     _AuthIndex(i);
+    return _Array[i];
+}
+
+template <typename _T, int _Size>
+template <typename... Args>
+inline _T &Array<_T, _Size>::Emplace(int i, Args &&...args)
+{
+    _AuthIndex(i);
+
+    new (&_Array[i]) _T(std::forward<Args>(args)...);
     return _Array[i];
 }
