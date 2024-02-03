@@ -1,0 +1,2 @@
+# Array
+An static array
