@@ -1,14 +1,14 @@
 #pragma once
 
 #include <initializer_list>
-#include "Iterator.h"
+#include "../Iterator.h"
 
 #define _PRINT_(x)              \
     {                           \
         std::cout << x << "\n"; \
     }
 
-template <typename _Tp, size_t _Nm>
+template <typename _Tp, int _Nm>
 struct __array_traits
 {
     using _Type = _Tp[_Nm];
@@ -23,11 +23,13 @@ public:
 
 public:
     Array(const std::initializer_list<_T> &_D) { *this = _D; }
+    Array(const _T Data[_Size]) { *this = Data; }
     Array() {}
     ~Array() {}
 
     // Getters
-    const int Size() const { return _Size; }
+    const int Max_Size() const { return _Size; }
+    const int Size() const { return _OccupiedSize; }
     const _T *Data() const { return _Array; }
     const _T &At(int i) const { return this->operator[](i); }
 
@@ -41,19 +43,32 @@ public:
     // Rather than moving creates adds to _V from given args...
     template <typename... Args>
     _T &Emplace(int i, Args &&...args);
-    
+
     // Operators..
     _T &operator[](int i) { return _Get(i); }
-    const _T &operator[](int i) const { return _Get(i); }
+
+    const _T &operator[](int i) const
+    {
+        _AuthIndex(i);
+        return _Array[i];
+    }
 
     Iterator begin() { return Iterator(_Array); }
-    Iterator end() { return Iterator(_Array + _Size); }
+    Iterator end() { return Iterator(_Array + _OccupiedSize); }
 
     inline Array<_T, _Size> &operator=(const std::initializer_list<_T> &_D);
+    inline Array<_T, _Size> &operator=(const _T _D[_Size]);
+
+    inline void Push_Back(const char _L) { _Array[_OccupiedSize++] = _L; }
+
+    void _Flush_() { _Flush(); }
 
 private:
     // The main array whichs stores the data
     _T _Array[_Size];
+
+    // Ocuupied size
+    int _OccupiedSize = 0;
 
     // Flushes the elements of _Array
     void _Flush();
@@ -114,6 +129,16 @@ inline Array<_T, _Size> &Array<_T, _Size>::operator=(const std::initializer_list
         _Array[_i] = std::move(i);
 
     return *this;
+}
+
+template <typename _T, int _Size>
+inline Array<_T, _Size> &Array<_T, _Size>::operator=(const _T _D[_Size])
+{
+    for (int _OccupiedSize = 0; _OccupiedSize < _Size; _OccupiedSize++)
+        _Array[_OccupiedSize] = std::move(_D[_OccupiedSize]);
+
+    return *this;
+    // TODO: insert return statement here
 }
 
 template <typename _T, int _Size>
